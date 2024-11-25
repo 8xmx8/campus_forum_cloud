@@ -7,8 +7,10 @@ import (
 )
 
 type Config struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
+	Host        string `json:"host" yaml:"host"`
+	Port        int    `json:"port" yaml:"port"`
+	MysqlDSN    string `json:"MysqlDSN" yaml:"MysqlDSN"`
+	MySQLPrefix string `json:"MySQLPrefix" yaml:"MySQLPrefix"`
 }
 
 var (

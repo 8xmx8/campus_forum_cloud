@@ -26,4 +26,4 @@ COPY --from=builder /app /app
 COPY --from=builder /app/config /app/config
 
 ENTRYPOINT ["./campus"]
- CMD ["-config", "config/config.conf"]
+ CMD ["-f", "config/config.conf"]
