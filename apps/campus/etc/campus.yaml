@@ -1,0 +1,14 @@
+Name: campus-server
+LogPath : ./log
+LogMode : console
+LogEncoding : plain
+Host: 0.0.0.0
+Port: 8080
+MysqlDSN: root:admin123@tcp(0.0.0.0:3306)/campus_forum_cloud?charset=utf8&parseTime=True&loc=Local
+
+Redis:
+  Addrs:
+    - 0.0.0.0:6379
+  Pass:
+  DB: 3
+  Master:
