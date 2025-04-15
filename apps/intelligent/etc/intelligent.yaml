@@ -1,0 +1,12 @@
+CommentChain: ollama:public:comment
+ArticleChain: ollama:public:article
+MysqlDSN: root:admin123@tcp(0.0.0.0:3306)/finance_1?charset=utf8mb4&parseTime=True&loc=Local
+Chat:
+  Model: llama3.1
+  BaseUrl: 0.0.0.0:11434
+Redis:
+  Addr: 0.0.0.0:6379
+  Username:
+  Password:
+  DB: 3
+  Type: node
