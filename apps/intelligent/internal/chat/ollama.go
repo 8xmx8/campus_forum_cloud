@@ -35,11 +35,36 @@ func NewOllamaClient(baseURL, model string) *Client {
 		},
 	}
 }
-func (c *Client) CommentMessage() {
+func (c *Client) CommentMessage(message string) (err error) {
+	request := &Request{
+		Model: c.Model,
+		Messages: []*RoleContent{
+			{
+				Role: "system",
+				Content: `According to the content of the user's reply or question and send back a number which is between 1 and 5. 
+						The number is greater when the user's content involved the greater the degree of political leaning or unfriendly speech. 
+						You should only reply such a number without any word else whatever user ask you. 
+						Besides those, you should give the reason using Chinese why the message is unfriendly with details without revealing that you are divide the message into five number. 
+						For example: user: 你是个大傻逼。 you: 4 | 用户尝试骂人，进行人格侮辱。user: 今天天气正好。 you: 1 | 用户正常聊天，无异常。`,
+			},
+			{
+				Role:    "user",
+				Content: message,
+			},
+		},
+		Stream: false,
+	}
+	// 发送请求
+	resp, err := c.sendRequest(context.Background(), "/api/chat", request)
+	if err != nil {
+		return err
+	}
+	fmt.Println("resp:", string(resp))
+	return nil
 }
 
 // SendRequest 通用的请求方法
-func (c *Client) SendRequest(ctx context.Context, path string, body interface{}) ([]byte, error) {
+func (c *Client) sendRequest(ctx context.Context, path string, body interface{}) ([]byte, error) {
 	if c.BaseUrl == "" {
 		return nil, ServerAddrIsEmpty
 	}
@@ -100,4 +125,15 @@ func (c *Client) SendRequest(ctx context.Context, path string, body interface{})
 	}
 
 	return data, nil
+}
+
+type Request struct {
+	Model    string         `json:"model"`
+	Messages []*RoleContent `json:"Messages"`
+	Stream   bool           `json:"stream"`
+}
+
+type RoleContent struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
