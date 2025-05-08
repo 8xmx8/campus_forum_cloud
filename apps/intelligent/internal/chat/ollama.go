@@ -17,10 +17,9 @@ var ErrTimeout = errors.New("request timeout")                // 请求超时
 var ServerAddrIsEmpty = errors.New("ollama address is empty") // ollama 地址为空
 
 type Client struct {
-	BaseUrl    string            // API 基础地址
-	HTTPClient *http.Client      // HTTP 客户端
-	Headers    map[string]string // 公共请求头
-	Model      string            // 模型名称
+	BaseUrl    string       // API 基础地址
+	HTTPClient *http.Client // HTTP 客户端
+	Model      string       // 模型名称
 }
 
 func NewOllamaClient(baseURL, model string) *Client {
@@ -28,24 +27,18 @@ func NewOllamaClient(baseURL, model string) *Client {
 		Model:   model,
 		BaseUrl: baseURL,
 		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		Headers: map[string]string{
-			"Content-Type": "application/json",
+			Timeout: 10000 * time.Second,
 		},
 	}
 }
-func (c *Client) CommentMessage(message string) (err error) {
+
+func (c *Client) CommentMessage(message string) (*Response, error) {
 	request := &Request{
 		Model: c.Model,
 		Messages: []*RoleContent{
 			{
-				Role: "system",
-				Content: `According to the content of the user's reply or question and send back a number which is between 1 and 5. 
-						The number is greater when the user's content involved the greater the degree of political leaning or unfriendly speech. 
-						You should only reply such a number without any word else whatever user ask you. 
-						Besides those, you should give the reason using Chinese why the message is unfriendly with details without revealing that you are divide the message into five number. 
-						For example: user: 你是个大傻逼。 you: 4 | 用户尝试骂人，进行人格侮辱。user: 今天天气正好。 you: 1 | 用户正常聊天，无异常。`,
+				Role:    "system",
+				Content: "用户向你输入一段话，请你鉴别是否涉及不良言论，如果是，请给出1到5之间的一个数字和理由，严格按照下面的格式输出，强调一下只有 1 表示用户正常聊天，其余的 2，3，4，5 这个几个数字表示用户不良言论。比如 1 | 用户正常交流。2 | 用户不良言论。3 | 用户对亲人进行辱骂。3 | 用户涉及敏感话题。4 | 用户大量不良言论。 5 | 用户试图对人身进行攻击",
 			},
 			{
 				Role:    "user",
@@ -57,10 +50,13 @@ func (c *Client) CommentMessage(message string) (err error) {
 	// 发送请求
 	resp, err := c.sendRequest(context.Background(), "/api/chat", request)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Println("resp:", string(resp))
-	return nil
+	var response *Response
+	if err = json.Unmarshal(resp, &response); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // SendRequest 通用的请求方法
@@ -87,13 +83,9 @@ func (c *Client) sendRequest(ctx context.Context, path string, body interface{})
 		return nil, err
 	}
 
-	// 设置请求头
-	for key, value := range c.Headers {
-		req.Header.Set(key, value)
-	}
-
 	// 发送请求
 	resp, err := c.HTTPClient.Do(req)
+
 	if err != nil {
 		// 检查错误是否是 context deadline exceeded
 		if errors.Is(err, context.DeadlineExceeded) {
@@ -129,11 +121,23 @@ func (c *Client) sendRequest(ctx context.Context, path string, body interface{})
 
 type Request struct {
 	Model    string         `json:"model"`
-	Messages []*RoleContent `json:"Messages"`
+	Messages []*RoleContent `json:"messages"`
 	Stream   bool           `json:"stream"`
 }
-
 type RoleContent struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+type Response struct {
+	Model              string       `json:"model"`
+	CreatedAt          time.Time    `json:"created_at"`
+	Messages           *RoleContent `json:"message"`
+	DoneReason         string       `json:"done_reason"`
+	Done               bool         `json:"done"`
+	TotalDuration      int64        `json:"total_duration"`
+	LoadDuration       int64        `json:"load_duration"`
+	PromptEvalCount    int          `json:"prompt_eval_count"`
+	PromptEvalDuration int64        `json:"prompt_eval_duration"`
+	EvalCount          int          `json:"eval_count"`
+	EvalDuration       int64        `json:"eval_duration"`
 }
